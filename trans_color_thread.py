@@ -3,10 +3,9 @@ import os
 import numpy as np
 import time
 from concurrent.futures import ThreadPoolExecutor
+from colorsys import rgb_to_hsv
 
 # 設定
-from_color = '#FFFF00'  # 置換元の色（例：黄色）
-threshold = 100          # 色のしきい値
 save = False            # 変換画像を保存するか
 save_sample = True      # サンプルサムネイルを保存するか
 compact = True          # サムネイルを詰めて配置するか
@@ -199,10 +198,26 @@ samples_dir = 'samples'
 output_path = 'complate.png'
 
 image_files = [f for f in os.listdir(samples_dir) if f.endswith('.png') and f != 'complate.png']
-image_files.sort()
+
+# 彩度・明度で並べるための関数
+def hex_to_rgb_tuple(hex_color):
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+def get_color_info(fname):
+    # ファイル名例: '00B3FF_青.png' → '00B3FF'
+    code = fname.split('_', 1)[0]
+    rgb = hex_to_rgb_tuple(code)
+    r, g, b = [x / 255.0 for x in rgb]
+    h, s, v = rgb_to_hsv(r, g, b)
+    return (s, v, h)  # 彩度, 明度, 色相
+
+# 彩度（s）降順、明度（v）降順、色相（h）昇順でソート
+image_files.sort(key=get_color_info, reverse=True)
+
 images = [Image.open(os.path.join(samples_dir, fname)) for fname in image_files]
 
-cols = 3
+cols = 4
 rows = (len(images) + cols - 1) // cols
 widths, heights = zip(*(img.size for img in images))
 img_w = max(widths)
