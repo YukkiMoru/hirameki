@@ -55,15 +55,19 @@ image_files = [os.path.join(output_folder, f"ひらめき{i}.png") for i in rang
 root = tk.Tk()
 root.title("変換後画像のプレビュー")
 
-# 画像を横に並べて表示
+# 画像をグリッド（例：1行5列）で表示し、縦横比を維持して縮小
+cols = 5  # 1行あたりの画像数
+thumb_size = (150, 150)  # サムネイル最大サイズ
 frames = []
 for idx, img_path in enumerate(image_files):
     img = Image.open(img_path)
-    img = img.resize((150, 150))  # サムネイルサイズに調整
+    img.thumbnail(thumb_size, Image.LANCZOS)  # 縦横比維持で縮小
     tk_img = ImageTk.PhotoImage(img)
     frame = tk.Label(root, image=tk_img)
     frame.image = tk_img  # 参照保持
-    frame.grid(row=0, column=idx)
+    row = idx // cols
+    col = idx % cols
+    frame.grid(row=row, column=col, padx=5, pady=5)
     frames.append(frame)
 
 root.mainloop()
