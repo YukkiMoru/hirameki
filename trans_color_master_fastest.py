@@ -1,5 +1,7 @@
 from PIL import Image
 import os
+import numpy as np
+import time
 
 # 設定
 from_color = '#FFFF00'  # 置換元の色（例：黄色）
@@ -34,50 +36,78 @@ color_dict = {
     "#046E04": "フォレストグリーン",
     "#F5DEB3": "ウィート",
     "#E6E6FA": "ラベンダー",
+    "#DC143C": "クリムゾン",
+    "#00CED1": "ダークターコイズ",
+    "#FFDAB9": "ピーチパフ",
+    "#ADFF2F": "グリーンイエロー",
+    "#FF69B4": "ホットピンク",
+    "#8A2BE2": "ブルーバイオレット",
+    "#A9A9A9": "ダークグレー",
+    "#F08080": "ライトコーラル",
+    "#20B2AA": "ライトシーグリーン",
+    "#B0E0E6": "パウダーブルー",
+    "#000000": "黒",
+    "#F4A460": "サンドブラウン",
+    "#7FFF00": "チャートリューズ",
+    "#FF6347": "トマト",
+    "#40E0D0": "ターコイズ",
+    "#6A5ACD": "スレートブルー",
+    "#D2691E": "チョコレート",
+    "#00FF7F": "スプリンググリーン",
+    "#FF4500": "オレンジレッド",
+    "#2E8B57": "シーグリーン",
+    "#1E90FF": "ドジャーブルー",
+    "#FFE4E1": "ミスティローズ",
+    "#C0C0C0": "シルバー",
+    "#BDB76B": "ダークカーキ",
+    "#8FBC8F": "ダークシーグリーン",
+    "#9932CC": "ダークオーキッド",
+    "#FFB6C1": "ライトピンク",
+    "#5F9EA0": "キャドブルー",
+    "#F5F5DC": "ベージュ",
+    "#D8BFD8": "シスル",
+    "#DEB887": "バーレイウッド",
+    "#00FA9A": "ミディアムスプリンググリーン",
 }
 
 def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip('#')
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
-def color_distance(c1, c2):
-    return sum((a - b) ** 2 for a, b in zip(c1, c2)) ** 0.5
-
-def replace_color(input_path, output_folder, from_color, to_color, threshold=30, save=True):
+def replace_color_fast(input_path, output_folder, from_color, to_color, threshold=30, save=True):
     if isinstance(from_color, str):
-        from_rgb = hex_to_rgb(from_color)
+        from_rgb = np.array(hex_to_rgb(from_color))
     else:
-        from_rgb = from_color
+        from_rgb = np.array(from_color)
     if isinstance(to_color, str):
-        to_rgb = hex_to_rgb(to_color)
+        to_rgb = np.array(hex_to_rgb(to_color))
     else:
-        to_rgb = to_color
+        to_rgb = np.array(to_color)
     img = Image.open(input_path).convert('RGBA')
-    pixels = img.load()
-    for y in range(img.height):
-        for x in range(img.width):
-            r, g, b, a = pixels[x, y]
-            if color_distance((r, g, b), from_rgb) < threshold:
-                pixels[x, y] = (*to_rgb, a)
+    arr = np.array(img)
+    rgb = arr[..., :3]
+    mask = np.linalg.norm(rgb - from_rgb, axis=-1) < threshold
+    arr[mask, :3] = to_rgb
+    img2 = Image.fromarray(arr)
     if save:
         os.makedirs(output_folder, exist_ok=True)
         base_name = os.path.basename(input_path)
-        img.save(os.path.join(output_folder, base_name))
-    return img
+        img2.save(os.path.join(output_folder, base_name))
+    return img2
 
+total_start = time.time()
 # 変換＆サンプル保存＆プレビュー
 for to_color, color_name in color_dict.items():
+    start = time.time()
     output_folder = os.path.join("hirameki_trans", f"hirameki_{to_color.lstrip('#')}_{color_name}")
-    image_files = []
     thumbs = []
     for i in range(1, num_images + 1):
         fname = os.path.join('hirameki_original', f'ひらめき{i}.png')
-        img = replace_color(fname, output_folder, from_color, to_color, threshold=threshold, save=save)
+        img = replace_color_fast(fname, output_folder, from_color, to_color, threshold=threshold, save=save)
         # サムネイル作成
         img_thumb = img.copy()
         img_thumb.thumbnail(thumb_size, Image.LANCZOS)
         thumbs.append(img_thumb)
-        image_files.append(os.path.join(output_folder, f'ひらめき{i}.png'))
     # プレビュー用画像の圧縮配置（余白なしで詰めて1枚に）
     img_w = max(t.size[0] for t in thumbs) if thumbs else thumb_size[0]
     img_h = max(t.size[1] for t in thumbs) if thumbs else thumb_size[1]
@@ -95,3 +125,11 @@ for to_color, color_name in color_dict.items():
     if save_sample:
         os.makedirs("samples", exist_ok=True)
         preview_img.save(os.path.join("samples", f"{to_color.lstrip('#')}_{color_name}.png"))
+    end = time.time()
+    elapsed = end - start
+    # 残り色数から推測時間
+    remain = len(color_dict) - list(color_dict.keys()).index(to_color) - 1
+    est_total = elapsed * (remain + 1)
+    print(f"{color_name}({to_color}): {elapsed:.2f}秒  残り推定: {est_total:.1f}秒")
+total_end = time.time()
+print(f"全色合計処理時間: {total_end - total_start:.2f}秒")
