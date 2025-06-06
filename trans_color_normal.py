@@ -7,11 +7,11 @@ import time
 from_color = '#FFFF00'  # 置換元の色（例：黄色）
 threshold = 100          # 色のしきい値
 save = False            # 変換画像を保存するか
-save_sample = True      # サンプルサムネイルを保存するか
+save_sample = False      # サンプルサムネイルを保存するか
 num_images = 11         # 画像枚数
 cols = 6                # プレビュー1行あたりの画像数
 thumb_size = (150, 150) # サムネイル最大サイズ
-over_ride = False  # 既存の画像をスキップするか
+compact = True          # サムネイルを詰めて配置するか
 
 # 変換先カラーリスト（辞書型: カラーコード: 色名）
 color_dict = {
@@ -68,6 +68,41 @@ color_dict = {
     "#D8BFD8": "シスル",
     "#DEB887": "バーレイウッド",
     "#00FA9A": "ミディアムスプリンググリーン",
+    "#FF7F50": "コーラル",
+    "#B8860B": "ダークゴールド",
+    "#00FF00": "ライム",
+    "#191970": "ミッドナイトブルー",
+    "#FF1493": "ディープピンク",
+    "#7B68EE": "ミディアムスレートブルー",
+    "#228B22": "フォレスト",
+    "#FFD700": "ゴールド",
+    "#DA70D6": "オーキッド",
+    "#00BFFF": "ディープスカイブルー",
+    "#CD5C5C": "インディアンレッド",
+    "#FFDEAD": "ネバダ",
+    "#8B0000": "ダークレッド",
+    "#00FFEF": "エレクトリックシアン",
+    "#FF8C00": "ダークオレンジ",
+    "#B0C4DE": "ライトスチールブルー",
+    "#32CD32": "ライムグリーン",
+    "#F0E68C": "カーキ",
+    "#BC8F8F": "ロージーブラウン",
+    "#4169E1": "ロイヤルブルー",
+    "#FFFAFA": "スノー",
+    "#8A3324": "バーントアンバー",
+    "#00C957": "シャムロックグリーン",
+    "#C71585": "ミディアムバイオレットレッド",
+    "#FFEFD5": "パパイヤホイップ",
+    "#A0522D": "セピア",
+    "#DDA0DD": "プラム",
+    "#F0FFF0": "ハニーデュー",
+    "#E9967A": "ダークサーモン",
+    "#7CFC00": "ローングリーン",
+    "#F5FFFA": "ミントクリーム",
+    "#483D8B": "ダークスレートブルー",
+    "#00BFFF": "ディープスカイブルー",
+    "#DC143C": "クリムゾン",
+    "#FDF5E6": "オールドレース",
 }
 
 def hex_to_rgb(hex_color):
@@ -151,3 +186,146 @@ for to_color, color_name in color_dict.items():
     print(f"{color_name}({to_color}): {elapsed:.2f}秒  残り推定: {est_total:.1f}秒")
 total_end = time.time()
 print(f"全色合計処理時間: {total_end - total_start:.2f}秒")
+
+# --- samples内の全サムネイル画像を1枚にまとめる処理 ---
+if compact:
+    import glob
+    from PIL import ImageDraw, ImageFont
+    
+    sample_files = sorted(glob.glob(os.path.join("samples", "*.png")))
+    thumbs = []
+    labels = []
+    for f in sample_files:
+        if os.path.basename(f).lower() == "complate.png":
+            continue  # まとめ画像自身は除外
+        img = Image.open(f).convert('RGBA')
+        thumbs.append(img)
+        label = os.path.splitext(os.path.basename(f))[0].split('_', 1)[-1]
+        labels.append(label)
+    if thumbs:
+        img_w = max(t.size[0] for t in thumbs)
+        img_h = max(t.size[1] for t in thumbs)
+        n_thumbs = len(thumbs)
+        n_cols = min(cols, n_thumbs)
+        n_rows = (n_thumbs + n_cols - 1) // n_cols
+        label_height = 28
+        font = None
+        try:
+            font = ImageFont.truetype("meiryo.ttc", 18)
+        except:
+            font = ImageFont.load_default()
+        canvas = Image.new('RGBA', (n_cols * img_w, n_rows * (img_h + label_height)), (255,255,255,0))
+        draw = ImageDraw.Draw(canvas)
+        for idx, (img, label) in enumerate(zip(thumbs, labels)):
+            row = idx // n_cols
+            col = idx % n_cols
+            x = col * img_w + (img_w - img.size[0]) // 2
+            y = row * (img_h + label_height) + (img_h - img.size[1]) // 2
+            canvas.paste(img, (x, y), img)
+            # ラベル描画
+            lx = col * img_w + img_w // 2
+            ly = row * (img_h + label_height) + img_h + 2
+            bbox = draw.textbbox((0, 0), label, font=font)
+            w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+            draw.text((lx - w//2, ly), label, fill=(0,0,0,255), font=font)
+        canvas.save(os.path.join("samples", "complate.png"))
+        print(f"samples/complate.png を生成しました。")
+
+# --- サンプル画像を1枚に圧縮してまとめる ---
+from PIL import ImageDraw, ImageFont
+
+def make_complate_image(samples_dir="samples", out_path="samples/complate.png", cols=3, thumb_size=(150, 150)):
+    files = [f for f in os.listdir(samples_dir) if f.endswith(".png") and f != "complate.png"]
+    files.sort()  # 色順で並べる
+    n = len(files)
+    rows = (n + cols - 1) // cols
+    # サムネイル画像を読み込み
+    thumbs = []
+    labels = []
+    for f in files:
+        img = Image.open(os.path.join(samples_dir, f)).convert("RGBA")
+        img_thumb = img.copy()
+        img_thumb.thumbnail(thumb_size, Image.LANCZOS)
+        thumbs.append(img_thumb)
+        # ファイル名から色名を抽出
+        label = os.path.splitext(f)[0].split("_", 1)[-1]
+        labels.append(label)
+    # 画像サイズ計算
+    img_w, img_h = thumb_size
+    label_h = 28  # ラベル用高さ
+    out_w = cols * img_w
+    out_h = rows * (img_h + label_h)
+    out_img = Image.new("RGBA", (out_w, out_h), (255, 255, 255, 255))
+    # フォント設定（なければデフォルト）
+    try:
+        font = ImageFont.truetype("meiryo.ttc", 18)
+    except:
+        font = ImageFont.load_default()
+    draw = ImageDraw.Draw(out_img)
+    for idx, (img_thumb, label) in enumerate(zip(thumbs, labels)):
+        row = idx // cols
+        col = idx % cols
+        x = col * img_w + (img_w - img_thumb.size[0]) // 2
+        y = row * (img_h + label_h)
+        out_img.paste(img_thumb, (x, y))
+        # ラベル描画
+        text_w, text_h = draw.textbbox((0, 0), label, font=font)[2:4]
+        tx = col * img_w + (img_w - text_w) // 2
+        ty = y + img_h + 2
+        draw.text((tx, ty), label, fill=(0, 0, 0), font=font)
+    out_img.save(out_path)
+    print(f"サンプル画像をまとめて保存: {out_path}")
+
+# 実行
+make_complate_image()
+
+# --- samplesディレクトリ内の画像を3列でラベル付き結合 ---
+from PIL import Image, ImageDraw, ImageFont
+import os
+
+samples_dir = 'samples'
+output_path = 'complate.png'  # ルート直下に保存
+
+image_files = [f for f in os.listdir(samples_dir) if f.endswith('.png') and f != 'complate.png']
+image_files.sort()
+images = [Image.open(os.path.join(samples_dir, fname)) for fname in image_files]
+
+cols = 3
+rows = (len(images) + cols - 1) // cols
+widths, heights = zip(*(img.size for img in images))
+img_w = max(widths)
+img_h = max(heights)
+
+try:
+    font = ImageFont.truetype('meiryo.ttc', 28)
+except:
+    font = ImageFont.load_default()
+label_h = 36
+canvas_w = cols * img_w
+canvas_h = rows * (img_h + label_h)
+
+new_img = Image.new('RGBA', (canvas_w, canvas_h), (255,255,255,255))
+draw = ImageDraw.Draw(new_img)
+
+for idx, (img, fname) in enumerate(zip(images, image_files)):
+    row = idx // cols
+    col = idx % cols
+    x = col * img_w
+    y = row * (img_h + label_h)
+    # 白背景で合成
+    bg = Image.new('RGBA', (img_w, img_h), (255,255,255,255))
+    bg.paste(img, (0, 0), img if img.mode == 'RGBA' else None)
+    new_img.paste(bg, (x, y))
+    label = os.path.splitext(fname)[0]
+    try:
+        bbox = draw.textbbox((0,0), label, font=font)
+        text_w = bbox[2] - bbox[0]
+        text_h = bbox[3] - bbox[1]
+    except AttributeError:
+        text_w, text_h = font.getsize(label)
+    text_x = x + (img_w - text_w) // 2
+    text_y = y + img_h + (label_h - text_h) // 2
+    draw.text((text_x, text_y), label, fill=(0,0,0,255), font=font)
+
+new_img.save(output_path)
+print(f'結合画像を保存しました: {output_path}')
