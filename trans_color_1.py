@@ -2,7 +2,6 @@ from PIL import Image
 import os
 import tkinter as tk
 from PIL import ImageTk
-import yaml  # 追加
 
 # HEXカラーをRGBに変換
 def hex_to_rgb(hex_color):
@@ -34,24 +33,18 @@ def replace_color(input_path, output_folder, from_color, to_color, threshold=30)
     base_name = os.path.basename(input_path)
     img.save(os.path.join(output_folder, base_name))
 
-# 設定ファイル(config.yml)から値を読み込む
-with open('config.yml', encoding='utf-8') as f:
-    config = yaml.safe_load(f)
+# 変換元・変換先カラーコード
+from_color = '#FFFF00'  # 置換元の色（例：黄色）
+to_color = "#AE00FF27"    # 置換先の色（例：緑）
 
-from_color = config['from_color']
-to_color = config['to_color']
-threshold = config.get('threshold', 30)
-
-# 以下はコード内で直接指定
-num_images = 11  # 画像枚数
-cols = 5         # 1行あたりの画像数
-thumb_size = (120, 120)  # サムネイルサイズ
+# 画像枚数を変数で指定
+num_images = 11  # ひらめき1〜ひらめきN まで
 
 # 一括処理
 for i in range(1, num_images + 1):
     fname = os.path.join('hirameki_original', f'ひらめき{i}.png')
     output_folder = f"hirameki_{to_color.lstrip('#')}"
-    replace_color(fname, output_folder, from_color, to_color, threshold=threshold)
+    replace_color(fname, output_folder, from_color, to_color, threshold=30)
 
 # 変換後画像のパス一覧を取得
 output_folder = f"hirameki_{to_color.lstrip('#')}"
@@ -60,18 +53,15 @@ image_files = [os.path.join(output_folder, f"ひらめき{i}.png") for i in rang
 root = tk.Tk()
 root.title("変換後画像のプレビュー")
 
-# 画像をグリッド（例：1行5列）で表示
-# cols, thumb_sizeはYAMLから取得済み
+# 画像を横に並べて表示
 frames = []
 for idx, img_path in enumerate(image_files):
     img = Image.open(img_path)
-    img.thumbnail(thumb_size, Image.LANCZOS)
+    img = img.resize((150, 150))  # サムネイルサイズに調整
     tk_img = ImageTk.PhotoImage(img)
     frame = tk.Label(root, image=tk_img)
-    frame.image = tk_img
-    row = idx // cols
-    col = idx % cols
-    frame.grid(row=row, column=col, padx=5, pady=5)
+    frame.image = tk_img  # 参照保持
+    frame.grid(row=0, column=idx)
     frames.append(frame)
 
 root.mainloop()

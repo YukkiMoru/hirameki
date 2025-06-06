@@ -1,4 +1,0 @@
-# trans_color_multi_1.py 用設定ファイル
-from_color: '#FFFF00'      # 置換元の色
-to_color: '#AE00FF27'      # 置換先の色
-threshold: 50              # 色のしきい値
