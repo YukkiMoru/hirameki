@@ -2,8 +2,11 @@ from PIL import Image
 import os
 import numpy as np
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 # 設定
+from_color = '#FFFF00'  # 置換元の色（例：黄色）
+threshold = 100          # 色のしきい値
 save = False            # 変換画像を保存するか
 save_sample = True      # サンプルサムネイルを保存するか
 compact = True          # サムネイルを詰めて配置するか
@@ -17,90 +20,90 @@ color_dict = {
     "#00B3FF": "青",
     "#FF0000": "赤",
     "#00A500": "緑",
-    # "#FF00FF": "マゼンタ",
-    # "#FFA500": "オレンジ",
-    # "#FFFFFF": "白",
-    # "#777777": "グレー",
-    # "#C529C5": "紫",
-    # "#EB8A9A": "ピンク",
-    # "#9BF415": "黄緑",
-    # "#D16212": "茶色",
-    # "#FFD700": "ゴールド",
-    # "#00FFFF": "シアン",
-    # "#8B4513": "ダークブラウン",
-    # "#A0522D": "セピア",
-    # "#B22222": "ファイアレッド",
-    # "#4682B4": "スチールブルー",
-    # "#046E04": "フォレストグリーン",
-    # "#F5DEB3": "ウィート",
-    # "#E6E6FA": "ラベンダー",
-    # "#DC143C": "クリムゾン",
-    # "#00CED1": "ダークターコイズ",
-    # "#FFDAB9": "ピーチパフ",
-    # "#ADFF2F": "グリーンイエロー",
-    # "#FF69B4": "ホットピンク",
-    # "#8A2BE2": "ブルーバイオレット",
-    # "#A9A9A9": "ダークグレー",
-    # "#F08080": "ライトコーラル",
-    # "#20B2AA": "ライトシーグリーン",
-    # "#B0E0E6": "パウダーブルー",
-    # "#000000": "黒",
-    # "#F4A460": "サンドブラウン",
-    # "#7FFF00": "チャートリューズ",
-    # "#FF6347": "トマト",
-    # "#40E0D0": "ターコイズ",
-    # "#6A5ACD": "スレートブルー",
-    # "#D2691E": "チョコレート",
-    # "#00FF7F": "スプリンググリーン",
-    # "#FF4500": "オレンジレッド",
-    # "#2E8B57": "シーグリーン",
-    # "#1E90FF": "ドジャーブルー",
-    # "#FFE4E1": "ミスティローズ",
-    # "#C0C0C0": "シルバー",
-    # "#BDB76B": "ダークカーキ",
-    # "#8FBC8F": "ダークシーグリーン",
-    # "#9932CC": "ダークオーキッド",
-    # "#FFB6C1": "ライトピンク",
-    # "#5F9EA0": "キャドブルー",
-    # "#F5F5DC": "ベージュ",
-    # "#D8BFD8": "シスル",
-    # "#DEB887": "バーレイウッド",
-    # "#00FA9A": "ミディアムスプリンググリーン",
-    # "#FF7F50": "コーラル",
-    # "#B8860B": "ダークゴールド",
-    # "#00FF00": "ライム",
-    # "#191970": "ミッドナイトブルー",
-    # "#FF1493": "ディープピンク",
-    # "#7B68EE": "ミディアムスレートブルー",
-    # "#228B22": "フォレスト",
-    # "#FFD700": "ゴールド",
-    # "#DA70D6": "オーキッド",
-    # "#00BFFF": "ディープスカイブルー",
-    # "#CD5C5C": "インディアンレッド",
-    # "#FFDEAD": "ネバダ",
-    # "#8B0000": "ダークレッド",
-    # "#00FFEF": "エレクトリックシアン",
-    # "#FF8C00": "ダークオレンジ",
-    # "#B0C4DE": "ライトスチールブルー",
-    # "#32CD32": "ライムグリーン",
-    # "#F0E68C": "カーキ",
-    # "#BC8F8F": "ロージーブラウン",
-    # "#4169E1": "ロイヤルブルー",
-    # "#FFFAFA": "スノー",
-    # "#8A3324": "バーントアンバー",
-    # "#00C957": "シャムロックグリーン",
-    # "#C71585": "ミディアムバイオレットレッド",
-    # "#FFEFD5": "パパイヤホイップ",
-    # "#A0522D": "セピア",
-    # "#DDA0DD": "プラム",
-    # "#F0FFF0": "ハニーデュー",
-    # "#E9967A": "ダークサーモン",
-    # "#7CFC00": "ローングリーン",
-    # "#F5FFFA": "ミントクリーム",
-    # "#483D8B": "ダークスレートブルー",
-    # "#00BFFF": "ディープスカイブルー",
-    # "#DC143C": "クリムゾン",
-    # "#FDF5E6": "オールドレース",
+    "#FF00FF": "マゼンタ",
+    "#FFA500": "オレンジ",
+    "#FFFFFF": "白",
+    "#777777": "グレー",
+    "#C529C5": "紫",
+    "#EB8A9A": "ピンク",
+    "#9BF415": "黄緑",
+    "#D16212": "茶色",
+    "#FFD700": "ゴールド",
+    "#00FFFF": "シアン",
+    "#8B4513": "ダークブラウン",
+    "#A0522D": "セピア",
+    "#B22222": "ファイアレッド",
+    "#4682B4": "スチールブルー",
+    "#046E04": "フォレストグリーン",
+    "#F5DEB3": "ウィート",
+    "#E6E6FA": "ラベンダー",
+    "#DC143C": "クリムゾン",
+    "#00CED1": "ダークターコイズ",
+    "#FFDAB9": "ピーチパフ",
+    "#ADFF2F": "グリーンイエロー",
+    "#FF69B4": "ホットピンク",
+    "#8A2BE2": "ブルーバイオレット",
+    "#A9A9A9": "ダークグレー",
+    "#F08080": "ライトコーラル",
+    "#20B2AA": "ライトシーグリーン",
+    "#B0E0E6": "パウダーブルー",
+    "#000000": "黒",
+    "#F4A460": "サンドブラウン",
+    "#7FFF00": "チャートリューズ",
+    "#FF6347": "トマト",
+    "#40E0D0": "ターコイズ",
+    "#6A5ACD": "スレートブルー",
+    "#D2691E": "チョコレート",
+    "#00FF7F": "スプリンググリーン",
+    "#FF4500": "オレンジレッド",
+    "#2E8B57": "シーグリーン",
+    "#1E90FF": "ドジャーブルー",
+    "#FFE4E1": "ミスティローズ",
+    "#C0C0C0": "シルバー",
+    "#BDB76B": "ダークカーキ",
+    "#8FBC8F": "ダークシーグリーン",
+    "#9932CC": "ダークオーキッド",
+    "#FFB6C1": "ライトピンク",
+    "#5F9EA0": "キャドブルー",
+    "#F5F5DC": "ベージュ",
+    "#D8BFD8": "シスル",
+    "#DEB887": "バーレイウッド",
+    "#00FA9A": "ミディアムスプリンググリーン",
+    "#FF7F50": "コーラル",
+    "#B8860B": "ダークゴールド",
+    "#00FF00": "ライム",
+    "#191970": "ミッドナイトブルー",
+    "#FF1493": "ディープピンク",
+    "#7B68EE": "ミディアムスレートブルー",
+    "#228B22": "フォレスト",
+    "#FFD700": "ゴールド",
+    "#DA70D6": "オーキッド",
+    "#00BFFF": "ディープスカイブルー",
+    "#CD5C5C": "インディアンレッド",
+    "#FFDEAD": "ネバダ",
+    "#8B0000": "ダークレッド",
+    "#00FFEF": "エレクトリックシアン",
+    "#FF8C00": "ダークオレンジ",
+    "#B0C4DE": "ライトスチールブルー",
+    "#32CD32": "ライムグリーン",
+    "#F0E68C": "カーキ",
+    "#BC8F8F": "ロージーブラウン",
+    "#4169E1": "ロイヤルブルー",
+    "#FFFAFA": "スノー",
+    "#8A3324": "バーントアンバー",
+    "#00C957": "シャムロックグリーン",
+    "#C71585": "ミディアムバイオレットレッド",
+    "#FFEFD5": "パパイヤホイップ",
+    "#A0522D": "セピア",
+    "#DDA0DD": "プラム",
+    "#F0FFF0": "ハニーデュー",
+    "#E9967A": "ダークサーモン",
+    "#7CFC00": "ローングリーン",
+    "#F5FFFA": "ミントクリーム",
+    "#483D8B": "ダークスレートブルー",
+    "#00BFFF": "ディープスカイブルー",
+    "#DC143C": "クリムゾン",
+    "#FDF5E6": "オールドレース",
 }
 
 def hex_to_rgb(hex_color):
@@ -145,20 +148,23 @@ def replace_color_with_binary(input_path, binary_path, output_folder, to_color, 
         img2.save(os.path.join(output_folder, base_name))
     return img2
 
+def process_image(i, to_color, color_name, save, thumb_size):
+    fname = os.path.join('hirameki_original', f'ひらめき{i}.png')
+    binary_fname = os.path.join('hirameki_binary', f'ひらめき{i}.png')
+    output_folder = os.path.join("hirameki_trans", f"hirameki_{to_color.lstrip('#')}_{color_name}")
+    img = replace_color_with_binary(fname, binary_fname, output_folder, to_color, save=save)
+    img_thumb = img.copy()
+    img_thumb.thumbnail(thumb_size, Image.LANCZOS)
+    return img_thumb
+
+# 変換＆サンプル保存＆プレビュー（並列処理）
 total_start = time.time()
-# 変換＆サンプル保存＆プレビュー
 for to_color, color_name in color_dict.items():
     start = time.time()
-    output_folder = os.path.join("hirameki_trans", f"hirameki_{to_color.lstrip('#')}_{color_name}")
     thumbs = []
-    for i in range(1, num_images + 1):
-        fname = os.path.join('hirameki_original', f'ひらめき{i}.png')
-        binary_fname = os.path.join('hirameki_binary', f'ひらめき{i}.png')
-        img = replace_color_with_binary(fname, binary_fname, output_folder, to_color, save=save)
-        # サムネイル作成
-        img_thumb = img.copy()
-        img_thumb.thumbnail(thumb_size, Image.LANCZOS)
-        thumbs.append(img_thumb)
+    with ThreadPoolExecutor() as executor:
+        results = list(executor.map(lambda i: process_image(i, to_color, color_name, save, thumb_size), range(1, num_images + 1)))
+        thumbs.extend(results)
     # プレビュー用画像の圧縮配置（余白なしで詰めて1枚に）
     img_w = max(t.size[0] for t in thumbs) if thumbs else thumb_size[0]
     img_h = max(t.size[1] for t in thumbs) if thumbs else thumb_size[1]
@@ -169,7 +175,6 @@ for to_color, color_name in color_dict.items():
     for idx, img_thumb in enumerate(thumbs):
         row = idx // n_cols
         col = idx % n_cols
-        # サムネイルを中央揃えで貼り付け
         x = col * img_w + (img_w - img_thumb.size[0]) // 2
         y = row * img_h + (img_h - img_thumb.size[1]) // 2
         preview_img.paste(img_thumb, (x, y))
@@ -178,10 +183,8 @@ for to_color, color_name in color_dict.items():
         preview_img.save(os.path.join("samples", f"{to_color.lstrip('#')}_{color_name}.png"))
     end = time.time()
     elapsed = end - start
-    # 残り色数から推測時間
     remain = len(color_dict) - list(color_dict.keys()).index(to_color) - 1
     est_total = elapsed * (remain + 1)
-    # 秒数 | 色名 | カラーコード の順で表示（色名とカラーコードの間に適切な余白を入れる）
     print(f"{elapsed:.2f}秒 | 残り推定:{est_total:.1f}秒 | {to_color} | {color_name}")
 total_end = time.time()
 print(f"全色合計処理時間: {total_end - total_start:.2f}秒")
