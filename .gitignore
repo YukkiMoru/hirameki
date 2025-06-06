@@ -1,3 +1,5 @@
+.venv
+
 hirameki_*
 !hirameki_original
 samples*
