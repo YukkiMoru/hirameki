@@ -1,11 +1,10 @@
-from PIL import Image, ImageTk
+from PIL import Image
 import os
-import tkinter as tk
 
 # 設定
 from_color = '#FFFF00'  # 置換元の色（例：黄色）
-threshold = 30          # 色のしきい値
-save = False            # 変換画像を保存するか
+threshold = 100          # 色のしきい値
+save = True            # 変換画像を保存するか
 save_sample = True      # サンプルサムネイルを保存するか
 num_images = 11         # 画像枚数
 cols = 5                # プレビュー1行あたりの画像数
@@ -23,7 +22,6 @@ color_list = [
     "#800080",  # 紫
     "#FFC0CB",  # ピンク
     "#ADFF2F"   # 黄緑
-    # 他の色も追加可能
 ]
 
 def hex_to_rgb(hex_color):
