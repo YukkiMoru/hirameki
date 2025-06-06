@@ -1,0 +1,98 @@
+# --- Google Colab用: 必要なパッケージのインストール ---
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except ImportError:
+    !pip install pillow
+    from PIL import Image, ImageDraw, ImageFont
+import numpy as np
+import os
+from google.colab import files
+
+# UltraViolet (uv) をインストール
+!pip install uv
+
+# uvでGitHubリポジトリをクローン
+!uv pip install git+https://github.com/yourname/yourrepo.git
+
+# 画像フォルダを作業ディレクトリにコピー
+!cp -r yourrepo/hirameki_binary ./
+!cp -r yourrepo/hirameki_original ./
+
+# --- ユーザー入力 ---
+import ipywidgets as widgets
+from IPython.display import display
+
+color_code_widget = widgets.Text(value='#00B3FF', description='カラーコード:')
+color_name_widget = widgets.Text(value='青', description='色名:')
+display(color_code_widget, color_name_widget)
+
+# --- 入力画像のパス設定 ---
+num_images = 11
+thumb_size = (150, 150)
+
+# --- hexカラーをRGBに変換 ---
+def hex_to_rgb(hex_color):
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+# --- バイナリ画像を使って色変換 ---
+def replace_color_with_binary(input_path, binary_path, output_folder, to_color, save=True):
+    to_rgb = np.array(hex_to_rgb(to_color))
+    img = Image.open(input_path).convert('RGBA')
+    arr = np.array(img)
+    binary_img = Image.open(binary_path).convert('L')
+    binary_arr = np.array(binary_img)
+    mask = binary_arr == 255
+    arr[mask, :3] = to_rgb
+    img2 = Image.fromarray(arr)
+    if save:
+        os.makedirs(output_folder, exist_ok=True)
+        base_name = os.path.basename(input_path)
+        img2.save(os.path.join(output_folder, base_name))
+    return img2
+
+# --- 画像変換＆サムネイル作成 ---
+def process_image(i, to_color, color_name, save, thumb_size):
+    fname = os.path.join('hirameki_original', f'ひらめき{i}.png')
+    binary_fname = os.path.join('hirameki_binary', f'ひらめき{i}.png')
+    output_folder = os.path.join(f"hirameki_{to_color.lstrip('#')}_{color_name}")
+    img = replace_color_with_binary(fname, binary_fname, output_folder, to_color, save=save)
+    img_thumb = img.copy()
+    img_thumb.thumbnail(thumb_size, Image.LANCZOS)
+    return img_thumb
+
+# --- 実行ボタン ---
+run_button = widgets.Button(description='変換実行')
+output = widgets.Output()
+display(run_button, output)
+
+# --- 実行処理 ---
+def on_run_button_clicked(b):
+    with output:
+        output.clear_output()
+        to_color = color_code_widget.value
+        color_name = color_name_widget.value
+        thumbs = []
+        for i in range(1, num_images + 1):
+            thumb = process_image(i, to_color, color_name, save=True, thumb_size=thumb_size)
+            thumbs.append(thumb)
+        # サンプル画像作成
+        img_w = max(t.size[0] for t in thumbs) if thumbs else thumb_size[0]
+        img_h = max(t.size[1] for t in thumbs) if thumbs else thumb_size[1]
+        n_cols = 6
+        n_thumbs = len(thumbs)
+        n_rows = (n_thumbs + n_cols - 1) // n_cols
+        preview_img = Image.new('RGBA', (n_cols * img_w, n_rows * img_h), (255,255,255,0))
+        for idx, img_thumb in enumerate(thumbs):
+            row = idx // n_cols
+            col = idx % n_cols
+            x = col * img_w + (img_w - img_thumb.size[0]) // 2
+            y = row * img_h + (img_h - img_thumb.size[1]) // 2
+            preview_img.paste(img_thumb, (x, y))
+        os.makedirs('samples', exist_ok=True)
+        sample_path = os.path.join('samples', f"{to_color.lstrip('#')}_{color_name}.png")
+        preview_img.save(sample_path)
+        print(f'変換画像とサンプルを保存しました: {sample_path}')
+        display(preview_img)
+
+run_button.on_click(on_run_button_clicked)
