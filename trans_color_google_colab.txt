@@ -8,15 +8,10 @@ import numpy as np
 import os
 from google.colab import files
 
-# UltraViolet (uv) をインストール
-!pip install uv
-
-# uvでGitHubリポジトリをクローン
-!uv pip install git+https://github.com/yourname/yourrepo.git
-
-# 画像フォルダを作業ディレクトリにコピー
-!cp -r yourrepo/hirameki_binary ./
-!cp -r yourrepo/hirameki_original ./
+# --- GitHubリポジトリから画像フォルダを取得 ---
+!git clone --branch google_colab https://github.com/YukkiMoru/hirameki.git
+!cp -r hirameki/hirameki_binary ./
+!cp -r hirameki/hirameki_original ./
 
 # --- ユーザー入力 ---
 import ipywidgets as widgets
@@ -72,8 +67,10 @@ def on_run_button_clicked(b):
         output.clear_output()
         to_color = color_code_widget.value
         color_name = color_name_widget.value
+        print(f'カラーコード: {to_color}  色名: {color_name} で変換を開始します')
         thumbs = []
         for i in range(1, num_images + 1):
+            print(f'画像{i}を変換中...')
             thumb = process_image(i, to_color, color_name, save=True, thumb_size=thumb_size)
             thumbs.append(thumb)
         # サンプル画像作成
@@ -92,7 +89,28 @@ def on_run_button_clicked(b):
         os.makedirs('samples', exist_ok=True)
         sample_path = os.path.join('samples', f"{to_color.lstrip('#')}_{color_name}.png")
         preview_img.save(sample_path)
-        print(f'変換画像とサンプルを保存しました: {sample_path}')
+        print(f'\n【完了】変換画像とサンプルを保存しました: {sample_path}')
         display(preview_img)
+        print('下の「イラストzipダウンロード」ボタンから一括ダウンロードできます')
 
 run_button.on_click(on_run_button_clicked)
+
+# --- イラストのzipファイルの出力 ---
+import shutil
+
+def make_zip_and_download(to_color, color_name):
+    folder = f"hirameki_{to_color.lstrip('#')}_{color_name}"
+    zip_name = f"{folder}.zip"
+    shutil.make_archive(folder, 'zip', folder)
+    files.download(f"{zip_name}")
+
+# zip出力ボタン
+zip_button = widgets.Button(description='イラストzipダウンロード')
+display(zip_button)
+
+def on_zip_button_clicked(b):
+    to_color = color_code_widget.value
+    color_name = color_name_widget.value
+    make_zip_and_download(to_color, color_name)
+
+zip_button.on_click(on_zip_button_clicked)
