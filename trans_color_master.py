@@ -7,22 +7,24 @@ threshold = 100          # 色のしきい値
 save = True            # 変換画像を保存するか
 save_sample = True      # サンプルサムネイルを保存するか
 num_images = 11         # 画像枚数
-cols = 5                # プレビュー1行あたりの画像数
+cols = 6                # プレビュー1行あたりの画像数
 thumb_size = (150, 150) # サムネイル最大サイズ
+over_ride = False  # 既存の画像をスキップするか
 
-# 変換先カラーリスト
-color_list = [
-    "#00B3FF",  # 青
-    "#FF0000",  # 赤
-    "#00A500",  # 緑
-    "#FF00FF",  # マゼンタ
-    "#FFA500",  # オレンジ
-    "#FFFFFF",  # 白
-    "#808080",  # グレー
-    "#800080",  # 紫
-    "#FFC0CB",  # ピンク
-    "#ADFF2F"   # 黄緑
-]
+# 変換先カラーリスト（辞書型: カラーコード: 色名）
+color_dict = {
+    "#00B3FF": "青",
+    "#FF0000": "赤",
+    "#00A500": "緑",
+    "#FF00FF": "マゼンタ",
+    "#FFA500": "オレンジ",
+    "#FFFFFF": "白",
+    "#777777": "グレー",
+    "#C529C5": "紫",
+    "#EB8A9A": "ピンク",
+    "#9BF415": "黄緑",
+    "#D16212": "茶色",
+}
 
 def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip('#')
@@ -54,8 +56,8 @@ def replace_color(input_path, output_folder, from_color, to_color, threshold=30,
     return img
 
 # 変換＆サンプル保存＆プレビュー
-for to_color in color_list:
-    output_folder = f"hirameki_{to_color.lstrip('#')}"
+for to_color, color_name in color_dict.items():
+    output_folder = os.path.join("hirameki_trans", f"hirameki_{to_color.lstrip('#')}_{color_name}")
     image_files = []
     thumbs = []
     for i in range(1, num_images + 1):
@@ -65,10 +67,8 @@ for to_color in color_list:
         img_thumb = img.copy()
         img_thumb.thumbnail(thumb_size, Image.LANCZOS)
         thumbs.append(img_thumb)
-        # 個別サムネイル保存はしない
         image_files.append(os.path.join(output_folder, f'ひらめき{i}.png'))
     # プレビュー用画像の圧縮配置（余白なしで詰めて1枚に）
-    # サムネイルの最大幅・高さを取得（全て同じサイズで合成）
     img_w = max(t.size[0] for t in thumbs) if thumbs else thumb_size[0]
     img_h = max(t.size[1] for t in thumbs) if thumbs else thumb_size[1]
     n_thumbs = len(thumbs)
@@ -83,5 +83,5 @@ for to_color in color_list:
         y = row * img_h + (img_h - img_thumb.size[1]) // 2
         preview_img.paste(img_thumb, (x, y))
     if save_sample:
-        os.makedirs("samples", exist_ok=True)  # samplesディレクトリがなければ作成
-        preview_img.save(os.path.join("samples", f"{to_color.lstrip('#')}.png"))
+        os.makedirs("samples", exist_ok=True)
+        preview_img.save(os.path.join("samples", f"{to_color.lstrip('#')}_{color_name}.png"))
