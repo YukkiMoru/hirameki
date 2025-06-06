@@ -2,5 +2,6 @@
 
 hirameki_*
 !hirameki_original
+!hirameki_binary
 samples*
 complate.png
