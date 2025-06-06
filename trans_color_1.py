@@ -13,7 +13,7 @@ def color_distance(c1, c2):
     return sum((a - b) ** 2 for a, b in zip(c1, c2)) ** 0.5
 
 # 任意の色を他の色に置換する関数
-def replace_color(input_path, output_folder, from_color, to_color, threshold=30):
+def replace_color(input_path, output_folder, from_color, to_color, threshold=30, save=True):
     if isinstance(from_color, str):
         from_rgb = hex_to_rgb(from_color)
     else:
@@ -29,22 +29,24 @@ def replace_color(input_path, output_folder, from_color, to_color, threshold=30)
             r, g, b, a = pixels[x, y]
             if color_distance((r, g, b), from_rgb) < threshold:
                 pixels[x, y] = (*to_rgb, a)
-    os.makedirs(output_folder, exist_ok=True)
-    base_name = os.path.basename(input_path)
-    img.save(os.path.join(output_folder, base_name))
+    if save:
+        os.makedirs(output_folder, exist_ok=True)
+        base_name = os.path.basename(input_path)
+        img.save(os.path.join(output_folder, base_name))
+    return img
 
 # 変換元・変換先カラーコード
 from_color = '#FFFF00'  # 置換元の色（例：黄色）
-to_color = "#AE00FF27"    # 置換先の色（例：緑）
-
-# 画像枚数を変数で指定
-num_images = 11  # ひらめき1〜ひらめきN まで
+to_color = "#00B3FF"  # 置換先の色（例：緑）
+threshold = 30          # 色のしきい値
+save = False  # 保存するかどうか
+num_images = 11 # 画像枚数を変数で指定
 
 # 一括処理
 for i in range(1, num_images + 1):
     fname = os.path.join('hirameki_original', f'ひらめき{i}.png')
     output_folder = f"hirameki_{to_color.lstrip('#')}"
-    replace_color(fname, output_folder, from_color, to_color, threshold=30)
+    replace_color(fname, output_folder, from_color, to_color, threshold=threshold, save=save)
 
 # 変換後画像のパス一覧を取得
 output_folder = f"hirameki_{to_color.lstrip('#')}"
