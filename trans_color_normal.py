@@ -6,7 +6,7 @@ import time
 # 設定
 from_color = '#FFFF00'  # 置換元の色（例：黄色）
 threshold = 100          # 色のしきい値
-save = True            # 変換画像を保存するか
+save = False            # 変換画像を保存するか
 save_sample = True      # サンプルサムネイルを保存するか
 num_images = 11         # 画像枚数
 cols = 6                # プレビュー1行あたりの画像数
@@ -95,6 +95,23 @@ def replace_color_fast(input_path, output_folder, from_color, to_color, threshol
         img2.save(os.path.join(output_folder, base_name))
     return img2
 
+def replace_color_with_binary(input_path, binary_path, output_folder, to_color, save=True):
+    to_rgb = np.array(hex_to_rgb(to_color))
+    # 元画像とバイナリ画像を開く
+    img = Image.open(input_path).convert('RGBA')
+    arr = np.array(img)
+    binary_img = Image.open(binary_path).convert('L')
+    binary_arr = np.array(binary_img)
+    # 白ピクセル（255）が変換対象
+    mask = binary_arr == 255
+    arr[mask, :3] = to_rgb
+    img2 = Image.fromarray(arr)
+    if save:
+        os.makedirs(output_folder, exist_ok=True)
+        base_name = os.path.basename(input_path)
+        img2.save(os.path.join(output_folder, base_name))
+    return img2
+
 total_start = time.time()
 # 変換＆サンプル保存＆プレビュー
 for to_color, color_name in color_dict.items():
@@ -103,7 +120,8 @@ for to_color, color_name in color_dict.items():
     thumbs = []
     for i in range(1, num_images + 1):
         fname = os.path.join('hirameki_original', f'ひらめき{i}.png')
-        img = replace_color_fast(fname, output_folder, from_color, to_color, threshold=threshold, save=save)
+        binary_fname = os.path.join('hirameki_binary', f'ひらめき{i}.png')
+        img = replace_color_with_binary(fname, binary_fname, output_folder, to_color, save=save)
         # サムネイル作成
         img_thumb = img.copy()
         img_thumb.thumbnail(thumb_size, Image.LANCZOS)
