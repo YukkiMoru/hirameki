@@ -1,7 +1,7 @@
 仮想環境（venv）を作成するには、ターミナルで以下のコマンドを実行してください。
-python -m venv .venv
+py -3.13 -m venv .venv
 その後、Windowsの場合は以下で有効化できます。
-.venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 仮想環境内で必要なパッケージ（例：numpy）をインストールするには：
 pip install numpy
 これでXXX.pyを仮想環境で実行できます。
