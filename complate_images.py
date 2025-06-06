@@ -3,7 +3,7 @@ import os
 
 # samplesディレクトリ内の画像ファイル名を取得（拡張子pngのみ、ソート）
 samples_dir = 'samples'
-output_path = os.path.join(samples_dir, 'complate.png')
+output_path = 'complate.png'
 
 image_files = [f for f in os.listdir(samples_dir) if f.endswith('.png') and f != 'complate.png']
 image_files.sort()  # ファイル名順
