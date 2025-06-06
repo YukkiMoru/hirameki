@@ -183,7 +183,8 @@ for to_color, color_name in color_dict.items():
     # 残り色数から推測時間
     remain = len(color_dict) - list(color_dict.keys()).index(to_color) - 1
     est_total = elapsed * (remain + 1)
-    print(f"{color_name}({to_color}): {elapsed:.2f}秒  残り推定: {est_total:.1f}秒")
+    # 秒数 | 色名 | カラーコード の順で表示
+    print(f"{elapsed:.2f}秒 残り推定: {est_total:.1f}秒| {color_name} | {to_color}  残り推定: {est_total:.1f}秒")
 total_end = time.time()
 print(f"全色合計処理時間: {total_end - total_start:.2f}秒")
 
@@ -284,7 +285,7 @@ from PIL import Image, ImageDraw, ImageFont
 import os
 
 samples_dir = 'samples'
-output_path = 'complate.png'  # ルート直下に保存
+output_path = os.path.join(samples_dir, 'complate.png')
 
 image_files = [f for f in os.listdir(samples_dir) if f.endswith('.png') and f != 'complate.png']
 image_files.sort()
