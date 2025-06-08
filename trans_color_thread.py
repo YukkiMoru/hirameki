@@ -4,8 +4,8 @@ import numpy as np
 import time
 from concurrent.futures import ThreadPoolExecutor
 from colorsys import rgb_to_hsv
-from color_major import color_dict
-# from color import color_dict
+# from color_major import color_dict
+from color import color_dict
 
 # 設定
 save = True            # 変換画像を保存するか
