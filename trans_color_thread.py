@@ -4,10 +4,11 @@ import numpy as np
 import time
 from concurrent.futures import ThreadPoolExecutor
 from colorsys import rgb_to_hsv
-from color import color_dict
+from color_major import color_dict
+# from color import color_dict
 
 # 設定
-save = False            # 変換画像を保存するか
+save = True            # 変換画像を保存するか
 save_sample = True      # サンプルサムネイルを保存するか
 skip_sample_exists = True  # サンプルが既にあればスキップするか
 compact = True          # サムネイルを詰めて配置するか
@@ -15,7 +16,8 @@ num_images = 11         # 画像枚数
 cols = 6                # プレビュー1行あたりの画像数
 thumb_size = (150, 150) # サムネイル最大サイズ
 
-# 変換先カラーリスト（辞書型: カラーコード: 色名）
+# 出力先ディレクトリ
+os.makedirs("hirameki_files", exist_ok=True)
 
 def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip('#')
@@ -62,7 +64,7 @@ def replace_color_with_binary(input_path, binary_path, output_folder, to_color, 
 def process_image(i, to_color, color_name, save, thumb_size):
     fname = os.path.join('hirameki_original', f'ひらめき{i}.png')
     binary_fname = os.path.join('hirameki_binary', f'ひらめき{i}.png')
-    output_folder = os.path.join("hirameki_trans", f"hirameki_{to_color.lstrip('#')}_{color_name}")
+    output_folder = os.path.join("hirameki_files", f"hirameki_{to_color.lstrip('#')}_{color_name}")
     img = replace_color_with_binary(fname, binary_fname, output_folder, to_color, save=save)
     img_thumb = img.copy()
     img_thumb.thumbnail(thumb_size, Image.LANCZOS)
@@ -133,7 +135,7 @@ image_files.sort(key=get_color_info)
 
 images = [Image.open(os.path.join(samples_dir, fname)) for fname in image_files]
 
-cols = 6
+cols = 4
 rows = (len(images) + cols - 1) // cols
 widths, heights = zip(*(img.size for img in images))
 img_w = max(widths)
