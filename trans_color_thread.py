@@ -9,6 +9,7 @@ from color import color_dict
 # 設定
 save = False            # 変換画像を保存するか
 save_sample = True      # サンプルサムネイルを保存するか
+skip_sample_exists = True  # サンプルが既にあればスキップするか
 compact = True          # サムネイルを詰めて配置するか
 num_images = 11         # 画像枚数
 cols = 6                # プレビュー1行あたりの画像数
@@ -72,6 +73,10 @@ total_start = time.time()
 for to_color, color_name in color_dict.items():
     start = time.time()
     thumbs = []
+    sample_path = os.path.join("samples", f"{to_color.lstrip('#')}_{color_name}.png")
+    if save_sample and skip_sample_exists and os.path.exists(sample_path):
+        print(f"既にサンプルが存在するためスキップ: {sample_path}")
+        continue
     with ThreadPoolExecutor() as executor:
         results = list(executor.map(lambda i: process_image(i, to_color, color_name, save, thumb_size), range(1, num_images + 1)))
         thumbs.extend(results)
@@ -90,7 +95,7 @@ for to_color, color_name in color_dict.items():
         preview_img.paste(img_thumb, (x, y))
     if save_sample:
         os.makedirs("samples", exist_ok=True)
-        preview_img.save(os.path.join("samples", f"{to_color.lstrip('#')}_{color_name}.png"))
+        preview_img.save(sample_path)
     end = time.time()
     elapsed = end - start
     remain = len(color_dict) - list(color_dict.keys()).index(to_color) - 1
@@ -128,7 +133,7 @@ image_files.sort(key=get_color_info)
 
 images = [Image.open(os.path.join(samples_dir, fname)) for fname in image_files]
 
-cols = 4
+cols = 6
 rows = (len(images) + cols - 1) // cols
 widths, heights = zip(*(img.size for img in images))
 img_w = max(widths)
